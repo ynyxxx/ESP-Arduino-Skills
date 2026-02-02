@@ -1,6 +1,6 @@
-# Hardware Skills for Claude Code
+# Hardware Skills for AI Agents
 
-A comprehensive collection of Claude Code skills for embedded hardware development across multiple platforms and frameworks.
+A comprehensive collection of skills for embedded hardware development across multiple platforms and frameworks.
 
 ## Overview
 
