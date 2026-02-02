@@ -1,0 +1,30 @@
+{
+  "_comment": "Example project configuration for Claude Code",
+  "_usage": "Copy to .claude/project.json in your project root",
+
+  "platform": "esp32",
+  "framework": "arduino",
+
+  "description": "ESP32 project using Arduino framework",
+
+  "components": [
+    "servo",
+    "wifi"
+  ],
+
+  "pin_assignments": {
+    "servo": 18,
+    "led": 2
+  },
+
+  "build": {
+    "platformio": true,
+    "board": "esp32dev"
+  },
+
+  "notes": [
+    "This configuration helps Claude auto-select appropriate skills",
+    "Platform and framework determine which skill path to load",
+    "Components list helps Claude understand project scope"
+  ]
+}
