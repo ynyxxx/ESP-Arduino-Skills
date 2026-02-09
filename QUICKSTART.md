@@ -27,12 +27,11 @@ What skills are available?
 ```
 
 You should see skills like:
-- `esp32` (platform)
-- `esp32-arduino` (framework)
-- `esp32-arduino-servo` (component)
-- `arduino-uno` (platform)
-- `arduino-uno-arduino` (framework)
-- `arduino-uno-servo` (component)
+- `esp32` (platform reference - in platforms/)
+- `arduino-uno` (platform reference - in platforms/)
+- `esp32-arduino-servo` (implementation skill)
+- `arduino-uno-servo` (implementation skill)
+- `esp32-idf` (implementation skill - pure framework)
 
 ## Basic Usage
 
@@ -44,10 +43,9 @@ Generate servo control code for ESP32
 ```
 
 **Claude will:**
-1. Auto-load `esp32/SKILL.md` for hardware specs
-2. Auto-load `esp32/arduino/SKILL.md` for framework API
-3. Auto-load `esp32/arduino/components/servo/SKILL.md` for code generation
-4. Generate complete code with proper pin selection
+1. Auto-load `platforms/esp32/SKILL.md` for hardware specs
+2. Auto-load `esp32-arduino-servo/SKILL.md` for framework API + servo implementation
+3. Generate complete code with proper pin selection
 
 ### Example 2: Manual Invocation
 
@@ -78,27 +76,24 @@ Claude: (auto-detects ESP32 + Arduino from config, generates appropriate code)
 
 ## Skills Overview
 
-### Platform Skills (Hardware Knowledge)
+### Layer 1: Platform Skills (Hardware Reference)
 
-- **esp32**: ESP32 GPIO, ADC, PWM, WiFi/BT capabilities
-- **arduino-uno**: Arduino Uno pins, timers, memory constraints
+Located in `skills/platforms/`:
+- **platforms/esp32**: ESP32 GPIO, ADC, PWM, WiFi/BT capabilities
+- **platforms/arduino-uno**: Arduino Uno pins, timers, memory constraints
 
 These provide hardware specifications and pin selection guidance.
+Set to `user-invocable: false` - automatically loaded by Claude as reference.
 
-### Framework Skills (API Knowledge)
+### Layer 2: Implementation Skills (Framework + Component)
 
-- **esp32/arduino**: Arduino framework for ESP32
-- **esp32/esp-idf**: ESP-IDF native framework for ESP32
-- **arduino-uno/arduino**: Standard Arduino framework
+Located in `skills/`:
+- **esp32-arduino-servo**: Arduino framework + Servo for ESP32
+- **arduino-uno-servo**: Arduino framework + Servo for Arduino Uno
+- **esp32-idf**: ESP-IDF native framework (pure framework, no component yet)
 
-These provide framework API, libraries, and coding patterns.
-
-### Component Skills (Code Generation)
-
-- **esp32/arduino/components/servo**: Servo for ESP32+Arduino
-- **arduino-uno/arduino/components/servo**: Servo for Uno+Arduino
-
-These generate actual working code with wiring diagrams.
+These merge framework API knowledge with component implementation.
+Generate actual working code with wiring diagrams.
 
 ## Common Workflows
 
@@ -135,7 +130,7 @@ Claude:
 User: Can I use GPIO 34 for a servo on ESP32?
 
 Claude:
-(Checks esp32 platform skill)
+(Checks platforms/esp32 platform skill)
 No, GPIO 34 is input-only. Recommended pins for servo: 16, 17, 18, 19, 21-23
 ```
 
@@ -166,7 +161,7 @@ Claude: (Validates GPIO 25 is suitable, generates code with GPIO 25)
 User: Add WiFi connection and servo control to ESP32
 
 Claude:
-(Loads wifi and servo component skills, generates integrated code)
+(Loads esp32-arduino-wifi and esp32-arduino-servo skills, generates integrated code)
 ```
 
 ## Troubleshooting

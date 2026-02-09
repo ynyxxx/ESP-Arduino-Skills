@@ -1,6 +1,6 @@
 ---
 name: esp32-arduino-servo
-description: Generate servo motor control code for ESP32 using Arduino framework with ESP32Servo library. Handles PWM pin selection, LEDC configuration, and servo positioning.
+description: Generate servo motor control code for ESP32 using Arduino framework with ESP32Servo library. Handles PWM pin selection, LEDC configuration, and servo positioning for ESP32 hardware.
 allowed-tools: Read, Write
 ---
 
@@ -16,19 +16,78 @@ When user requests servo control, generate code that:
 3. Configures LEDC peripheral correctly
 4. Implements requested behavior (sweep, position, interactive)
 
+## Platform Requirements
+
+**Refer to `esp32` platform skill for:**
+- Complete GPIO specifications
+- Hardware constraints and strapping pins
+- Power requirements (3.3V logic)
+- ADC, DAC, and communication interface details
+
+**Key constraints for servo (from ESP32 platform):**
+- ✅ All GPIO pins support PWM via LEDC peripheral
+- ❌ Avoid input-only pins (34, 35, 36, 39) - cannot be used as outputs
+- ❌ Avoid strapping pins if possible (0, 2, 5, 12, 15) - affect boot mode
+- ⚠️ Operating voltage: 3.3V logic (not 5V tolerant)
+- ⚠️ Max current per GPIO: 40 mA (recommended 20 mA)
+
+## Arduino Framework Basics
+
+### Program Structure
+```cpp
+void setup() {
+  // Runs once at startup
+  // Initialize pins, Serial, servo, etc.
+}
+
+void loop() {
+  // Runs repeatedly after setup()
+  // Main program logic
+}
+```
+
+### Serial Communication
+```cpp
+Serial.begin(115200);         // Initialize Serial (typical ESP32 baud rate)
+Serial.println("Hello");      // Print with newline
+Serial.print(value);          // Print without newline
+```
+
+### Timing Functions
+```cpp
+delay(1000);                  // Delay 1000ms (blocking)
+delayMicroseconds(100);       // Delay 100μs (blocking)
+unsigned long ms = millis();  // Milliseconds since boot
+unsigned long us = micros();  // Microseconds since boot
+```
+
+## ESP32-Specific: LEDC PWM
+
+**Critical for servo:** ESP32 uses LEDC (LED Control) peripheral, not traditional PWM timers.
+
+### LEDC Features
+- 16 independent channels (0-15)
+- Frequency range: 1 Hz to 40 MHz
+- Resolution: 1-16 bits (configurable)
+- Any GPIO pin can be assigned to any channel
+
+### Why This Matters for Servo
+The ESP32Servo library abstracts LEDC complexity, but understanding the underlying mechanism helps:
+- Servo signals require precise 50Hz PWM
+- Pulse width controls servo position (typically 500-2400μs)
+- LEDC automatically manages the timing
+
+**You don't need to configure LEDC manually** - the ESP32Servo library handles it!
+
 ## Pin Selection
-
-### Check ESP32 Platform Constraints
-
-Before selecting a pin, verify with parent platform skill:
-- ✅ Pin supports PWM (all GPIO pins on ESP32)
-- ✅ NOT an input-only pin (avoid 34, 35, 36, 39)
-- ✅ NOT a strapping pin if possible (avoid 0, 2, 5, 12, 15)
-- ✅ NOT already used by other components
 
 ### Recommended Servo Pins
 **Best choices**: 16, 17, 18, 19, 21, 22, 23, 25, 26, 27
-**Avoid**: 0, 2, 5, 12, 15 (strapping), 34-39 (input-only)
+**Avoid**:
+- 0, 2, 5, 12, 15 (strapping pins - affect boot)
+- 34, 35, 36, 39 (input-only pins)
+- 6-11 (connected to flash memory)
+- 1, 3 (UART0 - USB serial)
 
 ### Default Pin
 If user doesn't specify: **Use GPIO 18**
@@ -195,7 +254,7 @@ void loop() {
 
 ### Key Differences from Standard Servo Library
 
-1. **Must call `setPeriodHertz()`** before `attach()`
+1. **Must call `setPeriodHertz()` before `attach()`**
    ```cpp
    myServo.setPeriodHertz(50);  // 50Hz for standard servos
    ```

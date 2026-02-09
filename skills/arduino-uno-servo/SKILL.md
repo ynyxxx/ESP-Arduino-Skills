@@ -1,6 +1,6 @@
 ---
 name: arduino-uno-servo
-description: Generate servo motor control code for Arduino Uno using standard Servo library. Handles PWM pin selection, Timer1 usage, and servo positioning.
+description: Generate servo motor control code for Arduino Uno using standard Servo library. Handles PWM pin selection, Timer1 usage, and servo positioning for ATmega328P hardware.
 allowed-tools: Read, Write
 ---
 
@@ -16,6 +16,79 @@ When user requests servo control, generate code that:
 3. Handles Timer1 usage properly
 4. Implements requested behavior (sweep, position, interactive)
 
+## Platform Requirements
+
+**Refer to `arduino-uno` platform skill for:**
+- Complete ATmega328P pin specifications
+- PWM capabilities and timer assignments
+- Memory constraints (2KB SRAM, 32KB Flash)
+- Communication interfaces (UART, I2C, SPI)
+- Current limitations and power requirements
+
+**Key constraints for servo (from Arduino Uno platform):**
+- ✅ PWM pins: 3, 5, 6, 9, 10, 11
+- ⚠️ Servo library uses Timer1, which **disables PWM on pins 9 and 10**
+- ⚠️ Operating voltage: 5V logic
+- ⚠️ Max current per pin: 40 mA (recommended 20 mA)
+- ⚠️ Limited RAM: Only 2KB SRAM (be memory-conscious)
+
+## Arduino Framework Basics
+
+### Program Structure
+```cpp
+void setup() {
+  // Runs once at startup
+  // Initialize pins, Serial, peripherals
+}
+
+void loop() {
+  // Runs continuously after setup()
+  // Main program logic
+}
+```
+
+### Serial Communication
+```cpp
+Serial.begin(9600);           // Initialize Serial (standard baud rate)
+Serial.println("Hello");      // Print with newline
+Serial.print(value);          // Print without newline
+if (Serial.available()) {     // Check if data available
+  char c = Serial.read();     // Read one byte
+}
+```
+
+### Timing Functions
+```cpp
+delay(1000);                  // Delay 1000ms (blocking)
+delayMicroseconds(100);       // Delay 100μs (blocking)
+unsigned long ms = millis();  // Milliseconds since boot (rolls over ~49 days)
+unsigned long us = micros();  // Microseconds since boot (rolls over ~70 minutes)
+```
+
+### Math and Mapping
+```cpp
+int mapped = map(value, 0, 1023, 0, 255);  // Map range
+int limited = constrain(value, 0, 255);    // Constrain to range
+```
+
+## Arduino Uno-Specific: Timer1 for Servo
+
+**Critical understanding:** The Servo library uses Timer1 for precise pulse timing.
+
+### Timer1 Impact
+- **PWM on pins 9 and 10 is DISABLED** when servo is attached
+- Cannot use `analogWrite(9, ...)` or `analogWrite(10, ...)`
+- Timer1 no longer available for other timing functions
+- This affects ALL servos, even if attached to other pins
+
+### Why This Matters
+Arduino Uno has three timers:
+- **Timer0**: Used by `millis()`, `delay()`, PWM on pins 5 and 6
+- **Timer1**: Used by Servo library, PWM on pins 9 and 10
+- **Timer2**: Used by `tone()`, PWM on pins 3 and 11
+
+Once you use the Servo library, Timer1 is dedicated to servo control.
+
 ## Pin Selection
 
 ### PWM-Capable Pins for Servo
@@ -29,7 +102,7 @@ Arduino Uno PWM pins: **3, 5, 6, 9, 10, 11**
 ### Default Pin
 If user doesn't specify: **Use Pin 9**
 
-⚠️ **Important**: Servo library uses Timer1, which **disables PWM on pins 9 and 10**
+⚠️ **Remember**: PWM on pins 9 and 10 will be disabled once Servo library is used!
 
 ## Code Generation
 
@@ -311,15 +384,7 @@ if (myServo.attached()) {
 myServo.detach();  // Stops servo pulses, saves power
 ```
 
-### Timer1 Impact
-
-⚠️ **Critical**: Servo library uses Timer1, which means:
-- **PWM on pins 9 and 10 is DISABLED** when servo is attached
-- Cannot use `analogWrite(9, ...)` or `analogWrite(10, ...)`
-- Timer1 no longer available for other timing functions
-
 ### Multiple Servos
-
 - Arduino Uno can control **up to 12 servos** simultaneously
 - All use Timer1
 - Pins 9 and 10 lose PWM capability for ALL attached servos
@@ -472,7 +537,7 @@ The Servo library uses:
 With Arduino Uno's limited 2KB RAM, avoid:
 - Creating excessive servo objects
 - Large delays in servo control loops
-- Unnecessary String concatenation
+- Unnecessary String concatenation (use char arrays instead)
 
 ## Troubleshooting
 

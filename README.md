@@ -25,43 +25,51 @@ This plugin provides hardware platform knowledge, framework-specific guidance, a
 
 ## Architecture
 
-Skills are organized in a nested structure:
+Skills are organized in a two-layer structure:
 
 ```
-platform/
-├── SKILL.md                    # Hardware specifications (pins, specs, constraints)
-└── framework/
-    ├── SKILL.md                # Framework-specific API and patterns
-    └── components/
-        └── component-name/
-            ├── SKILL.md        # Component code generation
-            └── resources/
-                └── templates/  # Code templates
+skills/
+├── platforms/                       # Layer 1: Platform reference (user-invocable: false)
+│   ├── esp32/
+│   │   └── SKILL.md                # ESP32 hardware specifications
+│   └── arduino-uno/
+│       └── SKILL.md                # Arduino Uno hardware specifications
+│
+└── [platform-framework-component]/ # Layer 2: Implementation skills
+    ├── SKILL.md                    # Merged framework + component knowledge
+    └── resources/
+        └── templates/              # Code templates
+```
+
+**Example:**
+```
+skills/
+├── platforms/esp32/SKILL.md        # ESP32 hardware reference
+├── esp32-arduino-servo/            # ESP32 + Arduino + Servo implementation
+│   ├── SKILL.md
+│   └── resources/templates/
+└── esp32-idf/                      # ESP32 + ESP-IDF (pure framework)
+    └── SKILL.md
 ```
 
 ### Skill Hierarchy
 
-**Platform Skills** (e.g., `esp32`, `arduino-uno`):
+**Layer 1: Platform Skills** (e.g., `platforms/esp32`, `platforms/arduino-uno`):
 - Hardware specifications
 - GPIO pin capabilities
 - Communication interfaces
 - Power requirements
 - Pin selection best practices
-- `user-invocable: false` (reference only)
+- `user-invocable: false` (automatically loaded as reference)
 
-**Framework Skills** (e.g., `esp32/arduino`, `arduino-uno/arduino`):
-- Framework API documentation
-- Library ecosystem
-- Build configuration
-- Framework-specific patterns
-- `user-invocable: false` (reference only)
-
-**Component Skills** (e.g., `esp32/arduino/components/servo`):
-- Code generation for specific components
+**Layer 2: Implementation Skills** (e.g., `esp32-arduino-servo`, `arduino-uno-servo`):
+- Merged framework + component knowledge
+- Code generation for specific use cases
 - Pin validation and selection
 - Wiring diagrams
-- Platform + framework specific implementation
+- Platform-specific implementation with framework API
 - Can be invoked by user or Claude
+- References platform skill for hardware details
 
 ## Installation
 
@@ -93,17 +101,16 @@ Claude automatically loads relevant skills based on context:
 User: "Create servo control code for ESP32"
 
 Claude loads (automatically):
-1. skills/esp32/SKILL.md
-2. skills/esp32/arduino/SKILL.md
-3. skills/esp32/arduino/components/servo/SKILL.md
+1. skills/platforms/esp32/SKILL.md          # Platform reference
+2. skills/esp32-arduino-servo/SKILL.md      # Implementation skill
 ```
 
 ### Manual Invocation
 
-Invoke component skills directly:
+Invoke implementation skills directly:
 
 ```bash
-# Generate ESP32 servo code
+# Generate ESP32 servo code (Arduino framework)
 /esp32-arduino-servo
 
 # Generate Arduino Uno servo code
@@ -128,65 +135,61 @@ Skills can detect this configuration and auto-adapt.
 ### ESP32 + Arduino + Servo
 
 ```
-skills/esp32/
-├── SKILL.md                           # ESP32 hardware (GPIO, ADC, PWM, etc.)
-└── arduino/
-    ├── SKILL.md                       # Arduino framework for ESP32
-    └── components/
-        └── servo/
-            ├── SKILL.md               # Servo code generation
-            └── resources/
-                └── templates/
-                    └── basic_sweep.ino
+skills/
+├── platforms/esp32/
+│   └── SKILL.md                       # ESP32 hardware (GPIO, ADC, PWM, etc.)
+└── esp32-arduino-servo/
+    ├── SKILL.md                       # Merged: Arduino framework + Servo component
+    └── resources/
+        └── templates/
+            └── basic_sweep.ino
 ```
 
 **How it works**:
 1. User asks: "Add servo to my ESP32 project"
 2. Claude detects platform from context or asks
-3. Loads `esp32/SKILL.md` for hardware knowledge (pin constraints)
-4. Loads `esp32/arduino/SKILL.md` for framework API
-5. Loads `esp32/arduino/components/servo/SKILL.md` to generate code
-6. Generates complete, validated code with proper pin selection
+3. Auto-loads `platforms/esp32/SKILL.md` for hardware knowledge (pin constraints)
+4. Loads `esp32-arduino-servo/SKILL.md` for framework API + servo implementation
+5. Generates complete, validated code with proper pin selection
+
+**Benefits**:
+- Simpler directory structure (2 layers vs 3)
+- Faster skill discovery
+- Clearer naming (`esp32-arduino-servo` is self-documenting)
+- Less cognitive overhead for users
 
 ### Arduino Uno + Arduino + Servo
 
 ```
-skills/arduino-uno/
-├── SKILL.md                           # Arduino Uno hardware
-└── arduino/
-    ├── SKILL.md                       # Standard Arduino framework
-    └── components/
-        └── servo/
-            ├── SKILL.md               # Servo for Uno
-            └── resources/
-                └── templates/
-                    └── basic_sweep.ino
+skills/
+├── platforms/arduino-uno/
+│   └── SKILL.md                       # Arduino Uno hardware
+└── arduino-uno-servo/
+    ├── SKILL.md                       # Merged: Arduino framework + Servo component
+    └── resources/
+        └── templates/
+            └── basic_sweep.ino
 ```
 
 ## Adding New Platforms
 
 To add a new platform (e.g., STM32):
 
-1. **Create platform skill**:
+1. **Create platform reference skill**:
    ```
-   skills/stm32f4/
+   skills/platforms/stm32f4/
    └── SKILL.md  # Hardware specs, GPIO, peripherals
    ```
+   - Set `user-invocable: false`
+   - Include complete hardware specifications
 
-2. **Add framework support**:
+2. **Create implementation skills** (one per framework-component combo):
    ```
-   skills/stm32f4/
-   ├── SKILL.md
-   └── arduino/
-       └── SKILL.md  # Arduino for STM32
-   ```
-
-3. **Add component implementations**:
-   ```
-   skills/stm32f4/arduino/components/
-   └── servo/
-       ├── SKILL.md
-       └── resources/
+   skills/stm32f4-arduino-servo/
+   ├── SKILL.md                    # Merged framework + servo knowledge
+   └── resources/
+       └── templates/
+           └── basic_sweep.ino
    ```
 
 ## Adding New Components
@@ -195,19 +198,24 @@ To add a new component (e.g., WiFi):
 
 1. **For each platform + framework combination**, create:
    ```
-   skills/esp32/arduino/components/wifi/
-   ├── SKILL.md
+   skills/esp32-arduino-wifi/
+   ├── SKILL.md                    # Merged framework + WiFi knowledge
    └── resources/
        └── templates/
            └── wifi_example.ino
    ```
 
-2. **Component skill should**:
-   - Reference parent platform skill for pin selection
-   - Reference parent framework skill for API usage
+2. **Implementation skill should**:
+   - Reference parent platform skill for hardware details (cross-reference)
+   - Include ~20% essential framework knowledge (setup/loop, Serial, etc.)
+   - Include 100% component implementation
    - Generate complete, working code
    - Include wiring diagrams
    - Handle errors and edge cases
+
+3. **Naming convention**: `{platform}-{framework}-{component}`
+   - Example: `esp32-arduino-servo`
+   - Example: `arduino-uno-arduino-lcd`
 
 ## Utility Scripts
 
@@ -228,24 +236,22 @@ Returns JSON with detected platform and framework:
 
 ## Best Practices
 
-### Platform Skills
+### Platform Skills (Layer 1)
 - Focus on hardware specs (voltage, pins, peripherals)
 - Include pin selection guidelines
 - List constraints and gotchas
 - Platform-agnostic (no framework-specific code)
+- Set `user-invocable: false` (reference only)
 
-### Framework Skills
-- Focus on API and libraries
-- Include build configuration
-- Show common patterns
-- Reference platform skill for hardware details
-
-### Component Skills
+### Implementation Skills (Layer 2)
+- Merge framework basics (~20%) + component implementation (100%)
 - Generate complete, working code
-- Validate pin selection against platform
+- Validate pin selection against platform skill
 - Include wiring instructions
 - Provide multiple usage examples
 - Handle edge cases (power, timing, conflicts)
+- Use clear cross-references to platform skill (e.g., "See `esp32` platform skill for complete GPIO specifications")
+- Avoid duplicating platform hardware specifications
 
 ## Skill Naming Convention
 
